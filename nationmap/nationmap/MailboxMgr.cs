@@ -47,7 +47,12 @@ namespace Prj301.MailSystem
 		{
 			this.MailID = mailID;
 			this.MailType = type;
+			this.Title = string.Empty;
+			this.Content = string.Empty;
+			this.Sender = string.Empty;
+			this.Recipient = string.Empty;
 			this.SendDate = System.TimeZone.CurrentTimeZone.ToLocalTime (new System.DateTime (1970, 1, 1));
+
 			m_attachments = new ArrayList ();
 		}
 
@@ -282,7 +287,7 @@ namespace Prj301.MailSystem
 			return sb.ToString ();
 		}
 */
-		public StringBuilder MailToJsonString (Category cate, int startIndex, int endIndex)
+		public string MailToJsonString (Category cate, int startIndex, int endIndex)
 		{
 			if (cate == Category.NUM)
 				throw new Exception ("Bad category");
@@ -313,7 +318,7 @@ namespace Prj301.MailSystem
 			sb.Append (endIndex - startIndex + 1);
 			sb.Append ("}");
 
-			return sb;
+			return sb.ToString();
 
 			/*
 			StringBuilder sb = new StringBuilder ();
@@ -364,15 +369,35 @@ namespace Prj301.MailSystem
 			return jd.ToJson ();*/
 		}
 
-		public ArrayList SearchMail (string key)
+		public string Search(Category cate, string key)
 		{
-			ArrayList al = new ArrayList ();
-			foreach (Mail m in (ArrayList)m_mailHolder[(int)Category.CUSTOM]) {
+			if (cate == Category.NUM)
+				throw new Exception ("Bad category");
+
+			ArrayList mailList = m_mailHolder [(int)cate] as ArrayList;
+
+			ArrayList rSearch = new ArrayList ();
+			foreach (Mail m in mailList) {
 				if (m.Title.Contains (key) || m.Content.Contains (key))
-					al.Add (m);
+					rSearch.Add (m);
 			}
 
-			return al;
+			//build json data
+			StringBuilder sb = new StringBuilder ();
+
+			sb.Append ("{\"Mails\":[");
+			for (int i = 0; i<rSearch.Count; i++) {
+				sb.Append ((rSearch [i] as Mail).ToJsonString ());
+				if (i < rSearch.Count - 1)
+					sb.Append (",");
+			}
+			sb.Append ("]");
+			sb.Append (",");
+			sb.Append ("\"MailsCount\":");
+			sb.Append (rSearch.Count);
+			sb.Append ("}");
+
+			return sb.ToString();
 		}
 		/*
 		public string SearchMail(string key)

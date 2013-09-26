@@ -34,7 +34,8 @@ namespace NationMap
 			mailMgr.AddMail (m1);
 			mailMgr.AddMail (m2);
 
-			Console.WriteLine (mailMgr.MailToJsonString (MailboxMgr.Category.CUSTOM, 0, 1));
+			//Console.WriteLine (mailMgr.MailToJsonString (MailboxMgr.Category.CUSTOM, 0, 1));
+			Console.WriteLine (mailMgr.Search (MailboxMgr.Category.CUSTOM, "test32"));
 
 
 			return;
