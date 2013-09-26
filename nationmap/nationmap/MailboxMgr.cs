@@ -81,7 +81,7 @@ namespace Prj301.MailSystem
 
 		public bool Read{ get; set; }
 
-		public bool Favorite{ get; set; }
+		public bool Saved{ get; set; }
 
 		public string Recipient{ get; set; }
 
@@ -158,8 +158,8 @@ namespace Prj301.MailSystem
 				writer.WritePropertyName ("Read");
 				writer.Write (this.Read);
 
-				writer.WritePropertyName ("Favorite");
-				writer.Write (this.Favorite);
+				writer.WritePropertyName ("Saved");
+				writer.Write (this.Saved);
 
 				writer.WritePropertyName ("Attachments");
 				writer.WriteArrayStart ();
@@ -192,8 +192,6 @@ namespace Prj301.MailSystem
 			for (int i = 0; i < (int)Category.NUM; i++) {
 				m_mailHolder.Add (new ArrayList ());
 			}
-
-			m_favoriteMailRef = new ArrayList ();
 		}
 
 		~MailboxMgr ()
@@ -206,8 +204,8 @@ namespace Prj301.MailSystem
 			CUSTOM = OUTBOX + 1,
 			NOTIFY = CUSTOM + 1,
 			REPORT = NOTIFY + 1,
-			NUM = REPORT + 1,
-			FAVORITE = NUM + 1,
+			SAVED = REPORT + 1,
+			NUM = SAVED + 1,
 		}
 
 		private static readonly MailboxMgr _instance = new MailboxMgr ();
@@ -218,11 +216,12 @@ namespace Prj301.MailSystem
 		}
 
 		private ArrayList m_mailHolder;
-		private ArrayList m_favoriteMailRef;
 
 		public void AddMail (Mail mail)
 		{
-			if (mail.IsCustomMail ())
+			if (mail.Saved)
+				(m_mailHolder [(int)Category.SAVED] as ArrayList).Add (mail);
+			else if (mail.IsCustomMail ())
 				(m_mailHolder [(int)Category.CUSTOM] as ArrayList).Add (mail);
 			else if (mail.IsNotifyMail ())
 				(m_mailHolder [(int)Category.NOTIFY] as ArrayList).Add (mail);
@@ -230,21 +229,14 @@ namespace Prj301.MailSystem
 				(m_mailHolder [(int)Category.REPORT] as ArrayList).Add (mail);
 			else
 				throw new Exception ("Unhandled type.");
-
-			if (mail.Favorite)
-				m_favoriteMailRef.Add (mail);
 		}
 
 		public int MailLength (Category cate)
 		{
 			if (cate == Category.NUM)
 				return 0;
-
-			if (cate == Category.FAVORITE)
-				return m_favoriteMailRef.Count;
-			else {
+			else 
 				return (m_mailHolder [(int)cate] as ArrayList).Count;
-			}
 		}
 
 		public Mail GetMail (Category cate, int index)
@@ -255,10 +247,7 @@ namespace Prj301.MailSystem
 			if (index < 0 || index > this.MailLength (cate) - 1)
 				throw new Exception ("Index out of range");
 
-			if (cate == Category.FAVORITE)
-				return m_favoriteMailRef [index] as Mail;
-			else 
-				return (m_mailHolder [(int)cate] as ArrayList) [index] as Mail;
+			return (m_mailHolder [(int)cate] as ArrayList) [index] as Mail;
 		}
 		/*
 		public string InboxToJsonString (int startIndex, int endIndex)
@@ -298,11 +287,7 @@ namespace Prj301.MailSystem
 			if (cate == Category.NUM)
 				throw new Exception ("Bad category");
 
-			ArrayList mailList = null;
-			if (cate == Category.FAVORITE)
-				mailList = m_favoriteMailRef;
-			else
-				mailList = m_mailHolder [(int)cate] as ArrayList;
+			ArrayList mailList = m_mailHolder [(int)cate] as ArrayList;
 
 			if (startIndex < 0 || startIndex > this.MailLength (cate) - 1)
 				throw new Exception ("startIndex out of range");
@@ -396,21 +381,21 @@ namespace Prj301.MailSystem
 			return "";
 		}
 */
-		public bool setFavorite (Category cate, string mailID)
+		public bool setSaved (Category cate, string mailID)
 		{
 			if (cate == Category.NUM)
 				throw new Exception ("Bad category");
 
-			ArrayList mailList = null;
-			if (cate == Category.FAVORITE)
-				mailList = m_favoriteMailRef;
-			else
-				mailList = m_mailHolder [(int)cate] as ArrayList;
+			if (cate == Category.SAVED)
+				return true;
+
+			ArrayList mailList = m_mailHolder [(int)cate] as ArrayList;
 
 			foreach (Mail m in mailList) {
 				if (m.MailID == mailID) {
-					m.Favorite = true;
-					m_favoriteMailRef.Add (m);
+					m.Saved = true;
+					mailList.Remove (m);
+					(m_mailHolder [(int)Category.SAVED] as ArrayList).Add (m);
 					return true;
 				}
 			}
@@ -418,12 +403,14 @@ namespace Prj301.MailSystem
 			return false;
 		}
 
-		public bool unsetFavorite (string mailID)
+		public bool setUnsaved (string mailID)
 		{
-			foreach (Mail m in m_favoriteMailRef) {
+			ArrayList mailList = m_mailHolder [(int)Category.SAVED] as ArrayList;
+
+			foreach (Mail m in mailList) {
 				if (m.MailID == mailID) {
-					m.Favorite = false;
-					m_favoriteMailRef.Remove (m);
+					m.Saved = false;
+					mailList.Remove (m);
 					return true;
 				}
 			}
@@ -431,9 +418,38 @@ namespace Prj301.MailSystem
 			return false;
 		}
 
-		public bool unsetFavorite (Mail mail)
+		public bool setUnsaved (Mail mail)
 		{
-			return unsetFavorite (mail.MailID);
+			return setUnsaved (mail.MailID);
+		}
+
+		public void deleteMails (Category cate, string mailIDs)
+		{
+			string[] mails = mailIDs.Split (',');
+
+			if (cate == Category.NUM)
+				throw new Exception ("Bad category");
+
+			ArrayList mailList = m_mailHolder [(int)cate] as ArrayList;
+
+			foreach (string id in mails) {
+				for (int i = mailList.Count; i >=0; i--) {
+					if ((mailList [i] as Mail).MailID == id) {
+						mailList.RemoveAt(i);
+						break;
+					}
+				}
+			}
+		}
+
+		public void deleteMails(Category cate)
+		{
+			if (cate == Category.NUM)
+				throw new Exception ("Bad category");
+
+			ArrayList mailList = m_mailHolder [(int)cate] as ArrayList;
+			mailList.Clear ();
+			GC.Collect ();
 		}
 	}
 	#endregion
