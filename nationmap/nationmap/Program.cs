@@ -1,13 +1,47 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Prj301.MailSystem;
+using LitJson;
 
 namespace NationMap
 {
+	class A
+	{
+		public string Str{get;set;}
+	}
+
 	class MainClass
 	{
 		public static void Main (string[] args)
 		{
+			Mail m1 = new Mail (System.Guid.NewGuid().ToString(), Mail.Type.CUSTOM);
+			m1.Sender = "iposei";
+			m1.Recipient = "ethan";
+			m1.Title = "test";
+
+			CoordinatesAttachment att1 = new CoordinatesAttachment (1, 1);
+			m1.AddCoordinates (att1);
+			CoordinatesAttachment att2 = new CoordinatesAttachment (2, 2);
+			m1.AddCoordinates (att2);
+
+			Mail m2 = new Mail (System.Guid.NewGuid().ToString(), Mail.Type.CUSTOM);
+			m2.Sender = "iposei2";
+			m2.Recipient = "ethan2";
+			m2.Title = "test2";
+
+			MailboxMgr mailMgr = MailboxMgr.getInstance ();
+			mailMgr.AddMail (m1);
+			mailMgr.AddMail (m2);
+
+			Console.WriteLine (mailMgr.MailToJsonString (MailboxMgr.Category.CUSTOM, 0, 1));
+
+
+			return;
+
+
+
+			// TEST CELL DATA
 			/*
 			for (int i = 0; i<100; i++) {
 				Random rnd = new Random (unchecked((int)DateTime.Now.Ticks));
